@@ -35,7 +35,27 @@
         <canvas id="canvas"></canvas>
     </div>
 
+
+    <div id="annotation-list" style="margin-top: 20px;">
+        <h4>Saved Annotations:</h4>
+        <ul id="annotataions" style="list-style-type: none; padding: 0;"></ul>
+    </div>
+
     <script>
+        function updateAnnotationList() {
+            const annotationList = document.getElementById('annotataions');
+            annotationList.innerHTML = '';
+
+            annotations_list.forEach((annotation, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerText = `${index + 1}.${annotation.label} @ [${annotation.x}, ${annotation.y}, ${annotation.width}, ${annotation.height}]`;
+                listItem.style.color = annotation.color;
+                annotationList.appendChild(listItem);
+            });
+        }
+
+        const annotations_list = []; // Store annotations
+
         const labelColors = {
             car: "red",
             truck: "blue",
@@ -101,6 +121,9 @@
             const label = document.getElementById('label').value;
             const color = labelColors[label] || 'black'; // fallback to black if label not found
 
+            // save the annotation data to the list
+            annotations_list.push({ x, y, width, height, label, color });
+
             // Draw the bounding box with the selected color
             ctx.strokeStyle = color;
             ctx.lineWidth = 2;
@@ -123,9 +146,8 @@
                 .then(response => response.json())
                 .then(data => console.log('Annotation saved:', data));
 
-            // ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // ctx.strokeStyle = 'green';
-            // ctx.strokeRect(x, y, width, height);
+            // update the annotations list
+            updateAnnotationList();
         });
     </script>
 </body>
