@@ -36,6 +36,14 @@
     </div>
 
     <script>
+        const labelColors = {
+            car: "red",
+            truck: "blue",
+            bus: "green",
+            bike: "orange",
+            pedestrian: "purple"
+        };
+
         const img = document.getElementById("image");
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
@@ -91,20 +99,33 @@
             }
 
             const label = document.getElementById('label').value;
+            const color = labelColors[label] || 'black'; // fallback to black if label not found
 
-            console.log("Saving annotation:", { x, y, width, height });
+            // Draw the bounding box with the selected color
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
 
+            // Draw the label text
+            ctx.font = '14px Arial';
+            ctx.fillStyle = color;
+            ctx.fillText(label, x + 4, y - 4); // top-left corner of the box
+
+
+            console.log("Saving annotation:", { x, y, width, height, label });
+
+            // Send the annotation data to the server
             fetch('/save_annotation', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ x, y, width, height })
+                body: JSON.stringify({ x, y, width, height, label })
             })
                 .then(response => response.json())
                 .then(data => console.log('Annotation saved:', data));
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = 'green';
-            ctx.strokeRect(x, y, width, height);
+            // ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // ctx.strokeStyle = 'green';
+            // ctx.strokeRect(x, y, width, height);
         });
     </script>
 </body>
