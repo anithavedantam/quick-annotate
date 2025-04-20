@@ -21,6 +21,15 @@
 
 <body>
     <h2>Annotator Tool - Draw Bounding Boxes</h2>
+    <label for="label">Label:</label>
+    <select id="label">
+        <option value="car">Car</option>
+        <option value="truck">Truck</option>
+        <option value="bus">Bus</option>
+        <option value="bike">Bike</option>
+        <option value="pedestrian">Pedestrian</option>
+    </select>
+
     <div id="canvas-container">
         <img id="image" src="{{ image_url  }}" alt="Annotate Image">
         <canvas id="canvas"></canvas>
@@ -32,7 +41,7 @@
         const ctx = canvas.getContext("2d");
         let startX = 0, startY = 0;
         let rect = {};
-        let dragging = false;
+        let isDrawing = false;
 
         img.onload = function () {
             console.log("Loaded image");
@@ -46,12 +55,12 @@
             const rect = canvas.getBoundingClientRect();
             startX = e.clientX - rect.left;
             startY = e.clientY - rect.top;
-            dragging = true;
+            isDrawing = true;
         });
 
         document.addEventListener('mousemove', (e) => {
             console.log("Mouse move");
-            if (!dragging) return;
+            if (!isDrawing) return;
             const rect = canvas.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
             const mouseY = e.clientY - rect.top;
@@ -64,8 +73,8 @@
 
         document.addEventListener('mouseup', (e) => {
             console.log("Mouse up");
-            if (!dragging) return;
-            dragging = false;
+            if (!isDrawing) return;
+            isDrawing = false;
             const rect = canvas.getBoundingClientRect();
             const endX = e.clientX - rect.left;
             const endY = e.clientY - rect.top;
@@ -80,6 +89,8 @@
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
+
+            const label = document.getElementById('label').value;
 
             console.log("Saving annotation:", { x, y, width, height });
 

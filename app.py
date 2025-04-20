@@ -11,7 +11,7 @@ ANNOTATIONS_PATH = "annotations.csv"
 if not os.path.exists(ANNOTATIONS_PATH):
     with open(ANNOTATIONS_PATH, 'w') as f:
         writer = csv.writer(f)
-        writer.writerow(['timestamp', 'image_name', 'x', 'y', 'width', 'height'])
+        writer.writerow(['timestamp', 'image_name', 'class','x', 'y', 'width', 'height'])
 
 @app.route("/")
 def index():
@@ -23,6 +23,7 @@ def save_annotation():
     data = request.json
     timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
     image_name = data.get('image_name', 'sample.jpeg')
+    label = data.get('label', 'vehicle')
     x = data['x']
     y = data['y']
     width = data['width']
@@ -30,7 +31,7 @@ def save_annotation():
 
     with open(ANNOTATIONS_PATH, mode='a', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow([timestamp, image_name, x, y, width, height])
+        writer.writerow([timestamp, image_name, label, x, y, width, height])
 
     return jsonify(status='success')
 
