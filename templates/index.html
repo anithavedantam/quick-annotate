@@ -23,6 +23,7 @@
     <h2>Annotator Tool - Draw Bounding Boxes</h2>
     <label for="label">Label:</label>
     <select id="label">
+        <option value="" disabled selected>Select a label</option>
         <option value="car">Car</option>
         <option value="truck">Truck</option>
         <option value="bus">Bus</option>
@@ -31,28 +32,17 @@
     </select>
 
     <div id="canvas-container">
-        <img id="image" src="{{ image_url  }}" alt="Annotate Image">
-        <canvas id="canvas"></canvas>
+        <img id="image" src="{{ image_url  }}" data-image-name="{{ image_name }}" alt="Annotate Image">
+        <canvas id="canvas" tabindex="0"></canvas>
     </div>
 
 
     <div id="annotation-list" style="margin-top: 20px;">
         <h4>Saved Annotations:</h4>
-        <ul id="annotataions" style="list-style-type: none; padding: 0;"></ul>
+        <ul id="annotations" style="list-style-type: none; padding: 0;"></ul>
     </div>
 
     <script>
-        function updateAnnotationList() {
-            const annotationList = document.getElementById('annotataions');
-            annotationList.innerHTML = '';
-
-            annotations_list.forEach((annotation, index) => {
-                const listItem = document.createElement('li');
-                listItem.innerText = `${index + 1}.${annotation.label} @ [${annotation.x}, ${annotation.y}, ${annotation.width}, ${annotation.height}]`;
-                listItem.style.color = annotation.color;
-                annotationList.appendChild(listItem);
-            });
-        }
 
         const annotations_list = []; // Store annotations
 
@@ -67,88 +57,225 @@
         const img = document.getElementById("image");
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
+        const imageName = img.getAttribute("data-image-name");
         let startX = 0, startY = 0;
         let rect = {};
         let isDrawing = false;
+        let isDraggingBox = false;
+        let selectedBoxIndex = null;
+        let dragOffsetX = 0, dragOffsetY = 0;
+        let mouseMoved = false;
+
+        function updateAnnotationList() {
+            const annotationList = document.getElementById('annotations');
+            annotationList.innerHTML = '';
+
+            annotations_list.forEach((annotation, index) => {
+                const listItem = document.createElement('li');
+                listItem.innerText = `${index + 1}.${annotation.label} @ [${annotation.x}, ${annotation.y}, ${annotation.width}, ${annotation.height}]`;
+                listItem.style.color = annotation.color;
+                annotationList.appendChild(listItem);
+            });
+        }
+
+        function drawAllAnnotations() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            annotations_list.forEach((annotation, idx) => {
+                // Normal annotation
+                ctx.strokeStyle = annotation.color;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(annotation.x, annotation.y, annotation.width, annotation.height);
+                // Label
+                ctx.font = '14px Arial';
+                ctx.fillStyle = annotation.color;
+                ctx.fillText(annotation.label, annotation.x + 4, annotation.y - 4);
+
+                // Highlight the annotation when it is selected
+                if (idx === selectedBoxIndex) {
+                    ctx.save();
+                    // ctx.setLineDash([5, 3]);
+                    ctx.strokeStyle = 'yellow';
+                    ctx.lineWidth = 4;
+                    ctx.strokeRect(annotation.x - 1, annotation.y - 1, annotation.width + 2, annotation.height + 2);
+                    ctx.restore();
+                }
+            });
+        }
 
         img.onload = function () {
             console.log("Loaded image");
             canvas.width = img.width;
             canvas.height = img.height;
             console.log("Canvas size set:", canvas.width, canvas.height);
+            canvas.focus();
         };
 
-        document.addEventListener('mousedown', (e) => {
+        canvas.addEventListener('mousedown', (e) => {
             console.log("Mouse down");
-            const rect = canvas.getBoundingClientRect();
-            startX = e.clientX - rect.left;
-            startY = e.clientY - rect.top;
+            const bounds = canvas.getBoundingClientRect();
+            const clickX = e.clientX - bounds.left;
+            const clickY = e.clientY - bounds.top;
+
+            selectedBoxIndex = null;
+            mouseMoved = false;
+
+            // Check if we are clicking on an existing box
+            for (let i = annotations_list.length - 1; i >= 0; i--) {
+                const annotation = annotations_list[i];
+                if (
+                    clickX >= annotation.x &&
+                    clickX <= annotation.x + annotation.width &&
+                    clickY >= annotation.y &&
+                    clickY <= annotation.y + annotation.height
+                ) {
+                    selectedBoxIndex = i;
+                    dragOffsetX = clickX - annotation.x;
+                    dragOffsetY = clickY - annotation.y;
+                    isDraggingBox = true;
+                    return;
+                }
+            }
+
+            // If we are not clicking on an existing box, start drawing a new box
+            startX = clickX;
+            startY = clickY;
             isDrawing = true;
         });
 
-        document.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('mousemove', (e) => {
             console.log("Mouse move");
-            if (!isDrawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.strokeStyle = 'red';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
-        });
+            const bounds = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - bounds.left;
+            const mouseY = e.clientY - bounds.top;
 
-        document.addEventListener('mouseup', (e) => {
-            console.log("Mouse up");
-            if (!isDrawing) return;
-            isDrawing = false;
-            const rect = canvas.getBoundingClientRect();
-            const endX = e.clientX - rect.left;
-            const endY = e.clientY - rect.top;
+            if (!isDrawing && selectedBoxIndex === null) return;
+            // ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const x = Math.min(startX, endX);
-            const y = Math.min(startY, endY);
-            const width = Math.abs(endX - startX);
-            const height = Math.abs(endY - startY);
+            // Mark the mouse moved
+            mouseMoved = true;
 
-            if (width < 5 || height < 5) {
-                console.log("Ignored small box.");
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                return;
+            if (isDrawing) {
+                drawAllAnnotations();
+                ctx.strokeStyle = "red";
+                ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
+            } else if (selectedBoxIndex !== null) {
+                const annotation = annotations_list[selectedBoxIndex];
+                annotation.x = mouseX - dragOffsetX;
+                annotation.y = mouseY - dragOffsetY;
+                drawAllAnnotations(); // Redraw the annotations
             }
 
-            const label = document.getElementById('label').value;
-            const color = labelColors[label] || 'black'; // fallback to black if label not found
-
-            // save the annotation data to the list
-            annotations_list.push({ x, y, width, height, label, color });
-
-            // Draw the bounding box with the selected color
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(x, y, width, height);
-
-            // Draw the label text
-            ctx.font = '14px Arial';
-            ctx.fillStyle = color;
-            ctx.fillText(label, x + 4, y - 4); // top-left corner of the box
-
-
-            console.log("Saving annotation:", { x, y, width, height, label });
-
-            // Send the annotation data to the server
-            fetch('/save_annotation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ x, y, width, height, label })
-            })
-                .then(response => response.json())
-                .then(data => console.log('Annotation saved:', data));
-
-            // update the annotations list
-            updateAnnotationList();
+            // if (isDraggingBox && selectedBoxIndex !== null) {
+            //     const annotation = annotations_list[selectedBoxIndex];
+            //     annotation.x = mouseX - dragOffsetX;
+            //     annotation.y = mouseY - dragOffsetY;
+            //     drawAllAnnotations(); // Redraw the annotations
+            // }
         });
+
+        canvas.addEventListener('mouseup', (e) => {
+            console.log("Mouse up");
+
+            const bounds = canvas.getBoundingClientRect();
+            const endX = e.clientX - bounds.left;
+            const endY = e.clientY - bounds.top;
+
+            if (isDrawing) {
+                isDrawing = false;
+                const width = Math.abs(endX - startX);
+                const height = Math.abs(endY - startY);
+
+                if (width < 5 || height < 5) {
+                    console.log("Ignored small box.");
+                    return;
+                }
+
+                const x = Math.min(startX, endX);
+                const y = Math.min(startY, endY);
+
+                const label = document.getElementById('label').value;
+                const color = labelColors[label] || 'black'; // fallback to black if label not found
+
+                if (!label) {
+                    alert("No label selected. Please select a label");
+                    return;
+                }
+
+                const id = crypto.randomUUID(); // generate a unique id for the annotation
+
+                // save the annotation data to the list
+                annotations_list.push({ id, x, y, width, height, label, color });
+                drawAllAnnotations();
+                // update the annotations list
+                updateAnnotationList();
+
+                console.log("Saving annotation:", { x, y, width, height, label });
+
+                // Send the annotation data to the server
+                fetch('/save_annotation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id, x, y, width, height, label })
+                });
+            }
+
+            // Finalize dragged box drop
+            if (isDraggingBox && mouseMoved && selectedBoxIndex != null) {
+                const annotation = annotations_list[selectedBoxIndex];
+
+                console.log("Dropped box at:", { x, y, width, height, label });
+
+                // Send the annotation data to the server
+                fetch('/update_annotation', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({
+                        x: annotation.x,
+                        y: annotation.y,
+                        width: annotation.width,
+                        height: annotation.height,
+                        label: annotation.label,
+                        image_name: imageName
+                    })
+                });
+
+                // Update the annotation data
+                updateAnnotationList();
+            }
+            // Reset the drawing state
+            selectedBoxIndex = null;
+            mouseMoved = false;
+            isDrawing = false;
+            isDraggingBox = false;
+        });
+
+        canvas.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' && selectedBoxIndex !== null) {
+                const annotation = annotations_list[selectedBoxIndex];
+
+                // remove the annotation from the list
+                annotations_list.splice(selectedBoxIndex, 1);
+
+                // update the annotations list
+                updateAnnotationList();
+
+                // redraw the annotations
+                drawAllAnnotations();
+
+                // send the annotation data to the server
+                fetch('/delete_annotation', {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json' },
+                    body: JSON.stringify({ id: annotation.id })
+                })
+                    .then(response => response.json())
+                    .then(data => console.log("Deleted annotataion:", data));
+
+                selectedBoxIndex = null;
+            }
+        });
+
     </script>
 </body>
 
