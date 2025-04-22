@@ -8,12 +8,29 @@
         #canvas-container {
             position: relative;
             display: inline-block;
+            width: 90vw;
+            max-width: 1000px;
+        }
+
+        #label-controls {
+            margin-top: 10px;
+            margin-bottom: 10px;
+            width: 100%;
+            text-align: center;
+        }
+
+        #image {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
         canvas {
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: auto;
             cursor: crosshair;
         }
     </style>
@@ -31,6 +48,8 @@
         <option value="pedestrian">Pedestrian</option>
     </select>
 
+    <div></div>
+
     <div id="canvas-container">
         <img id="image" src="{{ image_url  }}" data-image-name="{{ image_name }}" alt="Annotate Image">
         <canvas id="canvas" tabindex="0"></canvas>
@@ -42,10 +61,10 @@
         <ul id="annotations" style="list-style-type: none; padding: 0;"></ul>
     </div>
 
-    <div style="margin-top: 20px;">
+    <div id="navigation-buttons" style="margin-top: 20px;">
         <button onclick="navigateImage(-1)">Previous</button>
-        <button onclick="navigateImage(1)">Next</button>
         <span>Image {{ img_index + 1 }} of {{ total_images }}</span>
+        <button onclick="navigateImage(1)">Next</button>
     </div>
 
     <script>
@@ -138,8 +157,12 @@
 
         img.onload = function () {
             console.log("Loaded image");
-            canvas.width = img.width;
-            canvas.height = img.height;
+            // Get the real width and height of the image
+            const realrect = img.getBoundingClientRect();
+
+            // Set the canvas size to the real width and height of the image
+            canvas.width = realrect.width;
+            canvas.height = realrect.height;
             console.log("Canvas size set:", canvas.width, canvas.height);
             canvas.focus();
         };
