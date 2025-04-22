@@ -101,8 +101,6 @@
             const clickY = e.clientY - rect.top;
 
             selectedBoxIndex = null;
-            // isDrawing = false;
-            // isDraggingBox = false;
             mouseMoved = false;
 
             // Check if we are clicking on an existing box
@@ -142,10 +140,8 @@
 
             if (isDrawing) {
                 drawAllAnnotations();
-                // const width = mouseX - startX;
-                // const height = mouseY - startY;
                 ctx.strokeStyle = "red";
-                ctx.strokeRect(startX, startY, width, height);
+                ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
             } else if (selectedBoxIndex !== null && mouseMoved && !isDraggingBox) {
                 // start dragging only if mouse moved after selecting a box
                 isDraggingBox = true;
@@ -184,8 +180,10 @@
                 const label = document.getElementById('label').value;
                 const color = labelColors[label] || 'black'; // fallback to black if label not found
 
+                const id = crypto.randomUUID(); // generate a unique id for the annotation
+
                 // save the annotation data to the list
-                annotations_list.push({ x, y, width, height, label, color });
+                annotations_list.push({ id, x, y, width, height, label, color });
                 drawAllAnnotations();
                 // update the annotations list
                 updateAnnotationList();
@@ -196,7 +194,7 @@
                 fetch('/save_annotation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ x, y, width, height, label })
+                    body: JSON.stringify({ id, x, y, width, height, label })
                 });
             }
 
@@ -207,7 +205,7 @@
                 console.log("Dropped box at:", { x, y, width, height, label });
 
                 // Send the annotation data to the server
-                fetch('/save_annotation', {
+                fetch('/update_annotation', {
                     method: 'POST',
                     headers: { 'content-type': 'application/json' },
                     body: JSON.stringify({
