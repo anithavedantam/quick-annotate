@@ -68,6 +68,29 @@ def update_annotation():
         writer.writerows(updated_rows)
     return jsonify(status='updated')
 
+@app.route('/delete_annotation', methods=['POST'])
+def delete_annotation():
+    data = request.json
+    annotataion_id = data['id']
+    updated_rows = []
+
+    # Filter out the annotation to be deleted
+    with open(ANNOTATIONS_PATH, 'r') as f:
+        reader = csv.reader(f)
+        header = next(reader)
+
+        for row in reader:
+            if row[0] != annotataion_id:
+                updated_rows.append(row)
+    
+    # Write updated rows back to the file
+    with open(ANNOTATIONS_PATH, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(updated_rows)
+    
+    return jsonify(status='deleted')
+
 
 def main():
     app.run(debug=True)
