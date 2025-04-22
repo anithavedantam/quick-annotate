@@ -1,11 +1,11 @@
 import os
 import csv
-from flask import Flask, url_for, render_template, jsonify, request
+from flask import Flask, url_for, render_template, jsonify, request, redirect
 from datetime import datetime
 import uuid
 
 app = Flask(__name__)
-
+IMAGE_FOLDER = "static/images"
 ANNOTATIONS_PATH = "annotations.csv"
 
 # Create annotations file if it doesn't exist
@@ -16,14 +16,35 @@ if not os.path.exists(ANNOTATIONS_PATH):
 
 @app.route("/")
 def index():
-    image_url = url_for("static", filename="sample.jpeg")
-    return render_template("index.html", image_url=image_url)
+    images = os.listdir(IMAGE_FOLDER)
+    # Get the index of the image to display
+    img_index = int(request.args.get('img_index', 0))
+    
+    # If the index is out of range, set it to first image
+    if img_index < 0:
+        img_index = 0
+    # If the index is out of range, set it to last image
+    if img_index >= len(images):
+        img_index = len(images) - 1
+    
+    # Get the image name
+    image_name = images[img_index]
+    
+    # Get the image url
+    image_url = url_for("static", filename=f'images/{image_name}')
+
+    # Render the index.html template with the image url
+    return render_template("index.html", 
+                           image_url=image_url,
+                           image_name=image_name,
+                           img_index=img_index,
+                           total_images=len(images))
 
 @app.route('/save_annotation', methods=['POST'])
 def save_annotation():
     data = request.json
     timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")
-    image_name = data.get('image_name', 'sample.jpeg')
+    image_name = data.get('image_name', 'unknown.jpeg')
     label = data.get('label', 'vehicle')
     x = data['x']
     y = data['y']

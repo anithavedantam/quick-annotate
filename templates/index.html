@@ -42,6 +42,12 @@
         <ul id="annotations" style="list-style-type: none; padding: 0;"></ul>
     </div>
 
+    <div style="margin-top: 20px;">
+        <button onclick="navigateImage(-1)">Previous</button>
+        <button onclick="navigateImage(1)">Next</button>
+        <span>Image {{ img_index + 1 }} of {{ total_images }}</span>
+    </div>
+
     <script>
 
         const annotations_list = []; // Store annotations
@@ -100,6 +106,16 @@
                     ctx.restore();
                 }
             });
+        }
+
+        function navigateImage(direction) {
+            const currentIndex = parseInt("{{ img_index }}");
+            const totalImages = parseInt("{{ total_images }}");
+            const newIndex = currentIndex + direction;
+
+            if (newIndex >= 0 && newIndex < totalImages) {
+                window.location.href = `/?img_index=${newIndex}`;
+            }
         }
 
         img.onload = function () {
@@ -210,13 +226,13 @@
                 // update the annotations list
                 updateAnnotationList();
 
-                console.log("Saving annotation:", { x, y, width, height, label });
+                console.log("Saving annotation:", { imageName, x, y, width, height, label });
 
                 // Send the annotation data to the server
                 fetch('/save_annotation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, x, y, width, height, label })
+                    body: JSON.stringify({ id, imageName, x, y, width, height, label })
                 });
             }
 
