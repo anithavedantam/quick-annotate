@@ -23,6 +23,7 @@
     <h2>Annotator Tool - Draw Bounding Boxes</h2>
     <label for="label">Label:</label>
     <select id="label">
+        <option value="" disabled selected>Select a label</option>
         <option value="car">Car</option>
         <option value="truck">Truck</option>
         <option value="bus">Bus</option>
@@ -31,8 +32,8 @@
     </select>
 
     <div id="canvas-container">
-        <img id="image" src="{{ image_url  }}" alt="Annotate Image">
-        <canvas id="canvas"></canvas>
+        <img id="image" src="{{ image_url  }}" data-image-name="{{ image_name }}" alt="Annotate Image">
+        <canvas id="canvas" tabindex="0"></canvas>
     </div>
 
 
@@ -42,6 +43,29 @@
     </div>
 
     <script>
+
+        const annotations_list = []; // Store annotations
+
+        const labelColors = {
+            car: "red",
+            truck: "blue",
+            bus: "green",
+            bike: "orange",
+            pedestrian: "purple"
+        };
+
+        const img = document.getElementById("image");
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const imageName = img.getAttribute("data-image-name");
+        let startX = 0, startY = 0;
+        let rect = {};
+        let isDrawing = false;
+        let isDraggingBox = false;
+        let selectedBoxIndex = null;
+        let dragOffsetX = 0, dragOffsetY = 0;
+        let mouseMoved = false;
+
         function updateAnnotationList() {
             const annotationList = document.getElementById('annotations');
             annotationList.innerHTML = '';
@@ -66,39 +90,19 @@
             });
         }
 
-        const annotations_list = []; // Store annotations
-
-        const labelColors = {
-            car: "red",
-            truck: "blue",
-            bus: "green",
-            bike: "orange",
-            pedestrian: "purple"
-        };
-
-        const img = document.getElementById("image");
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        let startX = 0, startY = 0;
-        let rect = {};
-        let isDrawing = false;
-        let isDraggingBox = false;
-        let selectedBoxIndex = null;
-        let dragOffsetX = 0, dragOffsetY = 0;
-        let mouseMoved = false;
-
         img.onload = function () {
             console.log("Loaded image");
             canvas.width = img.width;
             canvas.height = img.height;
             console.log("Canvas size set:", canvas.width, canvas.height);
+            canvas.focus();
         };
 
-        document.addEventListener('mousedown', (e) => {
+        canvas.addEventListener('mousedown', (e) => {
             console.log("Mouse down");
-            const rect = canvas.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const clickY = e.clientY - rect.top;
+            const bounds = canvas.getBoundingClientRect();
+            const clickX = e.clientX - bounds.left;
+            const clickY = e.clientY - bounds.top;
 
             selectedBoxIndex = null;
             mouseMoved = false;
@@ -126,25 +130,22 @@
             isDrawing = true;
         });
 
-        document.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('mousemove', (e) => {
             console.log("Mouse move");
             if (!isDrawing && !isDraggingBox) return;
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
+            const bounds = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - bounds.left;
+            const mouseY = e.clientY - bounds.top;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // Mark the mouse moved
             mouseMoved = true;
+            drawAllAnnotations();
 
             if (isDrawing) {
-                drawAllAnnotations();
                 ctx.strokeStyle = "red";
                 ctx.strokeRect(startX, startY, mouseX - startX, mouseY - startY);
-            } else if (selectedBoxIndex !== null && mouseMoved && !isDraggingBox) {
-                // start dragging only if mouse moved after selecting a box
-                isDraggingBox = true;
             }
 
             if (isDraggingBox && selectedBoxIndex !== null) {
@@ -152,17 +153,15 @@
                 annotation.x = mouseX - dragOffsetX;
                 annotation.y = mouseY - dragOffsetY;
                 drawAllAnnotations(); // Redraw the annotations
-            } else {
-                drawAllAnnotations();
             }
         });
 
-        document.addEventListener('mouseup', (e) => {
+        canvas.addEventListener('mouseup', (e) => {
             console.log("Mouse up");
 
-            const rect = canvas.getBoundingClientRect();
-            const endX = e.clientX - rect.left;
-            const endY = e.clientY - rect.top;
+            const bounds = canvas.getBoundingClientRect();
+            const endX = e.clientX - bounds.left;
+            const endY = e.clientY - bounds.top;
 
             if (isDrawing) {
                 isDrawing = false;
@@ -179,6 +178,11 @@
 
                 const label = document.getElementById('label').value;
                 const color = labelColors[label] || 'black'; // fallback to black if label not found
+
+                if (!label) {
+                    console.log("No label selected. Please select a label");
+                    return;
+                }
 
                 const id = crypto.randomUUID(); // generate a unique id for the annotation
 
@@ -214,7 +218,7 @@
                         width: annotation.width,
                         height: annotation.height,
                         label: annotation.label,
-                        image_name: '{{ image_name }}'
+                        image_name: imageName
                     })
                 });
 
