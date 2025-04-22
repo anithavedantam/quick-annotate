@@ -113,9 +113,27 @@
             const totalImages = parseInt("{{ total_images }}");
             const newIndex = currentIndex + direction;
 
-            if (newIndex >= 0 && newIndex < totalImages) {
-                window.location.href = `/?img_index=${newIndex}`;
-            }
+            // Save current image annotations
+            fetch('/save_annotations_per_image', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image_name: imageName,
+                    annotations: annotations_list.map(annotation => ({
+                        id: annotation.id,
+                        x: annotation.x,
+                        y: annotation.y,
+                        width: annotation.width,
+                        height: annotation.height,
+                        label: annotation.label,
+                        color: annotation.color
+                    }))
+                })
+            }).then(() => {
+                if (newIndex >= 0 && newIndex < totalImages) {
+                    window.location.href = `/?img_index=${newIndex}`;
+                }
+            });
         }
 
         img.onload = function () {
@@ -229,11 +247,11 @@
                 console.log("Saving annotation:", { imageName, x, y, width, height, label });
 
                 // Send the annotation data to the server
-                fetch('/save_annotation', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id, imageName, x, y, width, height, label })
-                });
+                // fetch('/save_annotation', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ id, imageName, x, y, width, height, label })
+                // });
             }
 
             // Finalize dragged box drop
@@ -243,18 +261,18 @@
                 console.log("Dropped box at:", { x, y, width, height, label });
 
                 // Send the annotation data to the server
-                fetch('/update_annotation', {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({
-                        x: annotation.x,
-                        y: annotation.y,
-                        width: annotation.width,
-                        height: annotation.height,
-                        label: annotation.label,
-                        image_name: imageName
-                    })
-                });
+                // fetch('/update_annotation', {
+                //     method: 'POST',
+                //     headers: { 'content-type': 'application/json' },
+                //     body: JSON.stringify({
+                //         x: annotation.x,
+                //         y: annotation.y,
+                //         width: annotation.width,
+                //         height: annotation.height,
+                //         label: annotation.label,
+                //         image_name: imageName
+                //     })
+                // });
 
                 // Update the annotation data
                 updateAnnotationList();
@@ -280,13 +298,13 @@
                 drawAllAnnotations();
 
                 // send the annotation data to the server
-                fetch('/delete_annotation', {
-                    method: 'POST',
-                    headers: { 'content-type': 'application/json' },
-                    body: JSON.stringify({ id: annotation.id })
-                })
-                    .then(response => response.json())
-                    .then(data => console.log("Deleted annotataion:", data));
+                // fetch('/delete_annotation', {
+                //     method: 'POST',
+                //     headers: { 'content-type': 'application/json' },
+                //     body: JSON.stringify({ id: annotation.id })
+                // })
+                //     .then(response => response.json())
+                //     .then(data => console.log("Deleted annotataion:", data));
 
                 selectedBoxIndex = null;
             }

@@ -1,5 +1,6 @@
 import os
 import csv
+import json
 from flask import Flask, url_for, render_template, jsonify, request, redirect
 from datetime import datetime
 import uuid
@@ -12,7 +13,7 @@ ANNOTATIONS_PATH = "annotations.csv"
 if not os.path.exists(ANNOTATIONS_PATH):
     with open(ANNOTATIONS_PATH, 'w') as f:
         writer = csv.writer(f)
-        writer.writerow(['id', 'timestamp', 'image_name', 'class','x', 'y', 'width', 'height'])
+        writer.writerow(['image_name','id', 'timestamp', 'class','x', 'y', 'width', 'height'])
 
 @app.route("/")
 def index():
@@ -54,7 +55,7 @@ def save_annotation():
 
     with open(ANNOTATIONS_PATH, mode='a', newline='') as f:
         writer = csv.writer(f)
-        writer.writerow([annotation_id, timestamp, image_name, label, x, y, width, height])
+        writer.writerow([image_name, annotation_id, timestamp, label, x, y, width, height])
 
     return jsonify(status='success')
 
@@ -70,9 +71,9 @@ def update_annotation():
         for row in reader:
             if row[0] == annotation_id:
                 updated_rows.append([
+                    data['image_name'],
                     annotation_id,
                     datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f"),
-                    data['image_name'],
                     data['label'],
                     data['x'],
                     data['y'],
@@ -112,6 +113,38 @@ def delete_annotation():
     
     return jsonify(status='deleted')
 
+@app.route('/save_annotations_per_image', methods=['POST'])
+def save_annotations_per_image():
+    data = request.json
+    image_name = data['image_name']
+    annotations = data['annotations']
+
+    updated_rows = []
+    exists = False
+
+    with open(ANNOTATIONS_PATH, 'r') as f:
+        reader = csv.reader(f)
+        header = next(reader)
+
+        for row in reader:
+            if row[0] == image_name:
+                updated_rows.append(row)
+                exists = True
+                updated_rows.append([image_name, json.dumps(annotations)])
+            else:
+                updated_rows.append(row)
+    
+    if not exists:
+        updated_rows.append([image_name, json.dumps(annotations)])
+    
+    # Write updated rows back to the file
+    with open(ANNOTATIONS_PATH, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(updated_rows)
+    
+    return jsonify(status='saved')
+    
 
 def main():
     app.run(debug=True)
