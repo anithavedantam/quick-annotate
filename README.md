@@ -46,6 +46,10 @@ pip install -r requirements.txt
 python app.py
 ```
 
+## Demo
+
+![Annotation Tool Demo](assets/annotation-demo.gif)
+
 ## TODO (Next Features)
 
 * Resize annotations by dragging the corners
