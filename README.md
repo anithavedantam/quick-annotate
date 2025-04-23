@@ -24,7 +24,7 @@ A lightweight browser-based image annotation tool built with Flask and vanilla J
 
 ```bash
 git clone https://github.com/anithavedantam/quick-annotate
-csv quick-annotate
+cd quick-annotate
 ```
 
 ### 2. Create a Virtual Environment
@@ -37,7 +37,7 @@ source .venv/bin/activate
 ### 3. Install Dependencies
 
 ```bash
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 ### 4. Run the App
@@ -45,6 +45,10 @@ pip install requirements.txt
 ```bash
 python app.py
 ```
+
+## Demo
+
+![Annotation Tool Demo](assets/annotation-demo.gif)
 
 ## TODO (Next Features)
 
